@@ -29,8 +29,7 @@ class VarnishPurger {
 	protected $purgeUrls = array();
 
 	public function __construct() {
-		defined('varnish-http-purge') ||define('varnish-http-purge', true);
-		defined('VHP_VARNISH_IP') || define('VHP_VARNISH_IP', false );
+		defined('varnish-http-purge') || define('varnish-http-purge', true);
 		add_action( 'init', array( &$this, 'init' ) );
 		add_action( 'activity_box_end', array( $this, 'varnish_rightnow' ), 100 );
 	}
@@ -148,10 +147,10 @@ class VarnishPurger {
 		}
 
 		// Build a varniship
-		if ( VHP_VARNISH_IP != false ) {
-			$varniship = VHP_VARNISH_IP;
-		} else {
-			$varniship = get_option('vhp_varnish_ip');
+		global $aws_varnish_ips;
+
+		if ( empty($aws_varnish_ips) ) {
+			$aws_varnish_ips = array($p['host']);
 		}
 
 		if (isset($p['path'] ) ) { 
@@ -160,17 +159,11 @@ class VarnishPurger {
 			$path = '';
 		}
 
-		// If we made varniship, let it sail
-		if ( isset($varniship) && $varniship != null ) {
-			$purgeme = $p['scheme'].'://'.$varniship.$path.$pregex;
-		} else {
-			$purgeme = $p['scheme'].'://'.$p['host'].$path.$pregex;
+		foreach($aws_varnish_ips as $varn) {
+			$purgeme = $p['scheme'].'://'.$varn.$path.$pregex;
+			wp_remote_request($purgeme, array('method' => 'PURGE', 'headers' => array( 'host' => $p['host'], 'X-Purge-Method' => $varnish_x_purgemethod ) ) );
 		}
 
-		// Cleanup CURL functions to be wp_remote_request and thus better
-		// http://wordpress.org/support/topic/incompatability-with-editorial-calendar-plugin
-		wp_remote_request($purgeme, array('method' => 'PURGE', 'headers' => array( 'host' => $p['host'], 'X-Purge-Method' => $varnish_x_purgemethod ) ) );
-		
 		do_action('after_purge_url', $url, $purgeme);
 	}
 
