@@ -136,9 +136,7 @@ class VarnishPurger {
 	protected function purgeUrl($url) {
 		// Parse the URL for proxy proxies
 		$p = parse_url($url);
-		$screen = array('l', 'm', 's');
-		
-		
+
 		if ( isset($p['query']) && ( $p['query'] == 'vhp=regex' ) ) {
 			$pregex = '.*';
 			$varnish_x_purgemethod = 'regex';
@@ -162,9 +160,7 @@ class VarnishPurger {
 
 		foreach($aws_varnish_ips as $varn) {
 			$purgeme = $p['scheme'].'://'.$varn.$path.$pregex;
-			foreach($screen as $s){
-				wp_remote_request($purgeme, array('method' => 'PURGE', 'headers' => array( 'host' => $p['host'], 'X-Purge-Method' => $varnish_x_purgemethod, 'X-AMI-Layout' => $s ) ) );
-			}
+			wp_remote_request($purgeme, array('method' => 'PURGE', 'headers' => array( 'host' => $p['host'], 'X-Purge-Method' => $varnish_x_purgemethod ) ) );
 		}
 
 		do_action('after_purge_url', $url);

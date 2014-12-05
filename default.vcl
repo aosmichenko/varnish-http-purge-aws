@@ -53,7 +53,23 @@ if (req.request == "PURGE") {
 }
 
 sub vcl_hash {
-  # [AMI]: populate req.http.X-AMI-Layout so it can be used later
+  hash_data(req.url);
+
+  if (req.http.host) {
+    hash_data(req.http.host+"|"+req.http.X-AMI-Layout);
+  } else {
+    hash_data(server.ip);
+  }
+  return (hash);
+}
+
+sub vcl_recv {
+
+  if (req.http.host ~ "^(www|geo\.)?starmagazine\.com") {
+    error 753 "Redirect to Radar";
+  }
+  set req.backend = radar_balancer;
+ # [AMI]: populate req.http.X-AMI-Layout so it can be used later
   if (req.url ~ "\.(jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|js|css|xml)$"
     || req.url ~ "\.(jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|js|css|xml)\?"
     || req.url ~ "\.(jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|js|css|xml)\@"
@@ -73,23 +89,6 @@ sub vcl_hash {
        }
 
   }
-  hash_data(req.url);
-
-  if (req.http.host) {
-    hash_data(req.http.host+"|"+req.http.X-AMI-Layout);
-  } else {
-    hash_data(server.ip);
-  }
-  return (hash);
-}
-
-sub vcl_recv {
-
-  if (req.http.host ~ "^(www|geo\.)?starmagazine\.com") {
-    error 753 "Redirect to Radar";
-  }
-  set req.backend = radar_balancer;
-
   if (req.request == "PURGE") {
     if (!client.ip ~ purge) {
      error 405 "Not allowed.";
